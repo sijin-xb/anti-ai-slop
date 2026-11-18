@@ -160,6 +160,27 @@ class CollectFilesTests(unittest.TestCase):
             hidden.write_text("正文\n", encoding="utf-8")
             self.assertEqual([p.name for p in collect_files([str(hidden)])], [".note.md"])
 
+class SuffixTests(unittest.TestCase):
+    def test_mdx_is_treated_as_markdown(self):
+        text = "```jsx\nimport Hero from './hero'\n```\n正文值得注意的是。\n"
+        found = write_scan(text, suffix=".mdx")
+        self.assertEqual({f.category for f in found}, {"filler"})
+        self.assertEqual({f.line for f in found}, {4})
+
+    def test_mdx_inline_jsx_tag_is_stripped(self):
+        text = "参见 <Link href=\"/docs\">docs</Link> 页面，值得注意的是这句是正文。\n"
+        found = write_scan(text, suffix=".mdx")
+        self.assertEqual({f.category for f in found}, {"filler"})
+
+    def test_rst_fences_are_disabled_but_blocks_are_not(self):
+        text = "标题\n~~~~\n\n```bash\n" + SLOP + "\n```\n"
+        found = write_scan(text, suffix=".rst")
+        self.assertIn("filler", {f.category for f in found})
+
+    def test_txt_is_scanned_as_plain_text(self):
+        text = "值得注意的是这句是纯文本。\n"
+        self.assertIn("filler", {f.category for f in write_scan(text, suffix=".txt")})
+
 class ClassifyLinesTests(unittest.TestCase):
     def test_classify_reports_fence_and_interior_lines(self):
         lines = ["正文", "```py", "code", "```", "更多正文"]

@@ -12,7 +12,7 @@ A cross-domain quality skill. Five review dimensions plus hard discipline for Ch
 | `scripts/rules.py` | Rule registry: IDs, severities, exceptions, test anchors |
 | `scripts/corpus_metrics.py` | Precision / recall report over the labeled corpus |
 | `docs/linter.md` | Counting standard, severity model, exit codes, format support |
-| `tests/` | 229 tests; labeled corpus with manifest; agent evaluation kit in `tests/evaluation/` |
+| `tests/` | 233 tests; labeled corpus with manifest; agent evaluation kit in `tests/evaluation/` |
 
 ## Install
 
