@@ -15,7 +15,6 @@ except ImportError:
     from rules import SEVERITY_BY_ID, SEVERITY_RANK
 
 TEXT_SUFFIXES = {".md", ".markdown", ".mdx", ".txt", ".rst"}
-FENCE_SUFFIXES = TEXT_SUFFIXES - {".rst"}
 
 Pattern = tuple[str, re.Pattern[str], str]
 
