@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600" viewBox="0 0 1200 600" role="img" aria-labelledby="hero-title hero-desc">
+  <title id="hero-title">Tag 实时同步</title>
+  <desc id="hero-desc">开源发布活动首屏：几何环与标签图形装饰，标题「Tag 实时同步」，副标题「推送到任意远端后 5 秒内可达」。6 秒入场动画，深浅两套配色，尊重减弱动态偏好。</desc>
+  <style>
+    text {
+      font-family: -apple-system, "Segoe UI", "PingFang SC", "Hiragino Sans GB",
+        "Source Han Sans SC", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
+    }
+    .bg       { fill: #f6f7fb; }
+    .t1       { fill: #141926; }
+    .t2       { fill: #5a6274; }
+    .accent   { fill: #3b5bdb; }
+    .acc-st   { stroke: #3b5bdb; }
+    .muted    { stroke: #ccd2e0; }
+    .dot-n    { fill: #a9b1c4; }
+    .dot-soft { fill: #91a7ff; }
+    .glow-a   { stop-color: #3b5bdb; stop-opacity: .12; }
+    .glow-b   { stop-color: #3b5bdb; stop-opacity: 0; }
+
+    .ring-outer { animation: draw 1.4s cubic-bezier(.25,.6,.3,1) 0s both; }
+    .ring-dash  { animation: fadeScale 1.2s ease-out .35s both;
+                  transform-box: fill-box; transform-origin: center; }
+    .ring-inner { animation: pop 1s cubic-bezier(.3,.7,.3,1) .7s both;
+                  transform-box: fill-box; transform-origin: center; }
+    .tag        { animation: pop 1.1s cubic-bezier(.3,.7,.3,1) 1.3s both;
+                  transform-box: fill-box; transform-origin: center; }
+    .bar        { animation: grow .5s ease-out 2.6s both;
+                  transform-box: view-box; transform-origin: 120px 225px; }
+    .title      { animation: rise .9s cubic-bezier(.2,.7,.3,1) 2.8s both; }
+    .sub        { animation: rise .9s cubic-bezier(.2,.7,.3,1) 3.9s both; }
+    .dot1       { animation: pop .7s ease-out 5s both;
+                  transform-box: fill-box; transform-origin: center; }
+    .dot2       { animation: pop .7s ease-out 5.15s both;
+                  transform-box: fill-box; transform-origin: center; }
+    .dot3       { animation: pop .7s ease-out 5.3s both;
+                  transform-box: fill-box; transform-origin: center; }
+
+    @keyframes draw      { from { stroke-dashoffset: 1320; } to { stroke-dashoffset: 0; } }
+    @keyframes fadeScale { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: scale(1); } }
+    @keyframes pop       { 0% { opacity: 0; transform: scale(.6); }
+                           70% { opacity: 1; transform: scale(1.06); }
+                           100% { opacity: 1; transform: scale(1); } }
+    @keyframes grow      { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+    @keyframes rise      { from { opacity: 0; transform: translateY(22px); }
+                           to { opacity: 1; transform: translateY(0); } }
+
+    @media (prefers-reduced-motion: reduce) {
+      .ring-outer, .ring-dash, .ring-inner, .tag,
+      .bar, .title, .sub, .dot1, .dot2, .dot3 { animation: none; }
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .bg       { fill: #0e1322; }
+      .t1       { fill: #edf1fb; }
+      .t2       { fill: #9aa4bd; }
+      .accent   { fill: #748ffc; }
+      .acc-st   { stroke: #748ffc; }
+      .muted    { stroke: #2a3452; }
+      .dot-n    { fill: #525d7a; }
+      .dot-soft { fill: #5c7cfa; }
+      .glow-a   { stop-color: #748ffc; stop-opacity: .22; }
+      .glow-b   { stop-color: #748ffc; stop-opacity: 0; }
+    }
+  </style>
+
+  <rect class="bg" x="0" y="0" width="1200" height="600"/>
+
+  <!-- 几何装饰：光晕 + 三层环 + 标签图形 + 节点 -->
+  <radialGradient id="glow" gradientUnits="userSpaceOnUse" cx="870" cy="300" r="270">
+    <stop offset="0" class="glow-a"/>
+    <stop offset="1" class="glow-b"/>
+  </radialGradient>
+  <circle cx="870" cy="300" r="270" fill="url(#glow)"/>
+
+  <circle class="muted ring-outer" cx="870" cy="300" r="210" fill="none"
+          stroke-width="1.5" stroke-dasharray="1320" stroke-dashoffset="0"
+          transform="rotate(-90 870 300)"/>
+  <circle class="acc-st ring-dash" cx="870" cy="300" r="150" fill="none"
+          stroke-width="1.6" stroke-dasharray="2 13" stroke-linecap="round"/>
+  <circle class="acc-st ring-inner" cx="870" cy="300" r="90" fill="none" stroke-width="2"/>
+
+  <g transform="translate(870 300)">
+    <path class="accent tag" fill-rule="evenodd"
+          d="M -38 -44 L 32 -44 L 62 0 L 32 44 L -38 44
+             Q -54 44 -54 28 L -54 -28 Q -54 -44 -38 -44 Z
+             M -14 0 A 12 12 0 1 0 -38 0 A 12 12 0 1 0 -14 0 Z"/>
+  </g>
+
+  <circle class="accent dot1" cx="1044" cy="183" r="6"/>
+  <circle class="dot-n dot2" cx="928" cy="502" r="5"/>
+  <circle class="dot-soft dot3" cx="669" cy="361" r="5"/>
+
+  <!-- 文案 -->
+  <rect class="accent bar" x="120" y="222" width="64" height="6" rx="3"/>
+  <text class="t1 title" x="120" y="316" font-size="72" font-weight="700">Tag 实时同步</text>
+  <text class="t2 sub" x="120" y="376" font-size="28">推送到任意远端后 5 秒内可达</text>
+</svg>

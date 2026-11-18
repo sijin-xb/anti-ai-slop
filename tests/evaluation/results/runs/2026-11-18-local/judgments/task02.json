@@ -1,0 +1,33 @@
+{
+  "task": "task02",
+  "scores": {
+    "A": {
+      "正确性": 2,
+      "任务完成度": 1,
+      "事实准确性": 2,
+      "可维护性": 2,
+      "复杂度控制": 2,
+      "视觉质量": "N/A",
+      "文档质量": 2,
+      "多余内容": 2,
+      "执行成本": 2
+    },
+    "B": {
+      "正确性": 2,
+      "任务完成度": 2,
+      "事实准确性": 1,
+      "可维护性": 2,
+      "复杂度控制": 2,
+      "视觉质量": "N/A",
+      "文档质量": 2,
+      "多余内容": 2,
+      "执行成本": 2
+    }
+  },
+  "summary": "正确性实测：在临时目录对 A/B 两份 notifier.py 各跑 26 项契约用例全部通过（渠道失败不抛异常返回 False、send_user_digest 返回真 bool、event.id 同轮去重且成功才记账、email→slack 顺序、首成功即停、全失败时重复 id 重试、subject='[digest] {title}' 与 body 格式、空事件返回 False、缺 id 抛 KeyError 与原实现一致、仅标准库导入）；原始实现首调即抛 ValueError（实测 'no channel registered for ChannelKind.EMAIL'），两份均修复该契约违约。其余删改声明逐条对 materials/notifier.py 核实为真：Sendable/register 零引用（grep 仅定义行 31/79）、retries/options 零读取、batch 切片共享去重集合故行为中立、MAX_CHANNELS 对 2 渠道为 no-op。两份 CHANGES.md 均 ≤10 行、每句对应契约、无套话客套；交付均恰为 notifier.py+CHANGES.md 两文件，无夹带文件或无关重构。差异各一处：A 任务完成度 1 分——A/notifier.py 删除了 materials/notifier.py:2 的 from __future__ import annotations 且 A/CHANGES.md 六项均未映射此项删改（删除后签名 list[dict] 需 Python≥3.9，无约束支付该改动），违反任务要求 2『每一项删改对应哪个真实约束』的完整性；B 事实准确性 1 分——B/CHANGES.md 第 4 条『enabled/retries/options…取值恒定且从未被读取』不实，materials/notifier.py:117 的 if config.enabled 确实读取了 enabled（取值恒 True 使读取无效，但字段被读取；A 对应表述『enabled 恒为 True』则准确）。视觉质量对两份均 N/A（无 UI 交付物）。执行成本仅能依据交付物判断：两份均无过程播报、无提问残留、汇报只报关键项。可评分 8 维合计 A=15/16，B=15/16，总分持平，差异在丢分维度：A 丢在任务完成度（未映射的删改），B 丢在事实准确性（不实声明），修正前者只需补一行说明、修正后者只需改一处措辞。",
+  "evidence": {
+    "A.任务完成度": "A/notifier.py 无 from __future__ import annotations（materials/notifier.py:2 原有）；A/CHANGES.md 第 1-5 项仅覆盖 Factory/ABC/Protocol/Pipeline/常量/字段，未提及 future import 删改",
+    "B.事实准确性": "B/CHANGES.md 第 4 条『删 ChannelConfig 的 enabled/retries/options 字段：取值恒定且从未被读取』 vs materials/notifier.py:117 'channels = [ChannelFactory.create(config) for config in configs if config.enabled]'",
+    "共同正面": "实测 ValueError 修复；26/26 契约用例两份全过；A 文档串『An event is only recorded as sent when a channel actually accepts it, so failed events are retried on repeat ids』与 T7b 实测一致"
+  }
+}

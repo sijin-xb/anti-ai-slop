@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600" viewBox="0 0 1200 600" role="img" aria-labelledby="hero-title hero-desc">
+  <title id="hero-title">Tag 实时同步</title>
+  <desc id="hero-desc">推送到任意远端后 5 秒内可达</desc>
+  <style>
+    .bg { fill: #f5f6f8; }
+    .title {
+      font: 700 64px/1 system-ui, -apple-system, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+      fill: #10141b;
+      animation: rise 1.6s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both;
+    }
+    .subtitle {
+      font: 400 24px/1 system-ui, -apple-system, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+      fill: #4d5560;
+      letter-spacing: 1px;
+      animation: rise 1.4s cubic-bezier(0.22, 1, 0.36, 1) 1.1s both;
+    }
+    .glyph-outline {
+      fill: none;
+      stroke: #0969da;
+      stroke-width: 10;
+      stroke-linejoin: round;
+      stroke-linecap: round;
+      stroke-dasharray: 680;
+      animation: draw 2.6s cubic-bezier(0.65, 0, 0.35, 1) 2.6s both;
+    }
+    .glyph-dot {
+      fill: #0969da;
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: pop 0.8s cubic-bezier(0.22, 1, 0.36, 1) 5.2s both;
+    }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0d1117; }
+      .title { fill: #e9eef4; }
+      .subtitle { fill: #9aa6b2; }
+      .glyph-outline { stroke: #58a6ff; }
+      .glyph-dot { fill: #58a6ff; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .title, .subtitle, .glyph-outline, .glyph-dot {
+        animation: none;
+      }
+    }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes draw {
+      from { stroke-dashoffset: 680; }
+      to   { stroke-dashoffset: 0; }
+    }
+    @keyframes pop {
+      0%   { opacity: 0; transform: scale(0.3); }
+      70%  { opacity: 1; transform: scale(1.1); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+  </style>
+  <rect class="bg" width="1200" height="600"/>
+  <path class="glyph-outline" d="M 972 208 L 838 208 L 772 300 L 838 392 L 972 392 Z"/>
+  <circle class="glyph-dot" cx="852" cy="300" r="20"/>
+  <text class="title" x="150" y="292">Tag 实时同步</text>
+  <text class="subtitle" x="150" y="358">推送到任意远端后 5 秒内可达</text>
+</svg>

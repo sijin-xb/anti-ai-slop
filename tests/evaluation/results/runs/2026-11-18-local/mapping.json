@@ -1,0 +1,22 @@
+{
+  "task01": {
+    "A": "treatment",
+    "B": "baseline"
+  },
+  "task02": {
+    "A": "baseline",
+    "B": "treatment"
+  },
+  "task03": {
+    "A": "treatment",
+    "B": "baseline"
+  },
+  "task04": {
+    "A": "baseline",
+    "B": "treatment"
+  },
+  "task05": {
+    "A": "treatment",
+    "B": "baseline"
+  }
+}

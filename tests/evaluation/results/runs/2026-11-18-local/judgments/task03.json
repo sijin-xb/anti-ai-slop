@@ -1,0 +1,48 @@
+{
+  "task": "task03",
+  "scores": {
+    "A": {
+      "正确性": 2,
+      "任务完成度": 2,
+      "事实准确性": 1,
+      "可维护性": 2,
+      "复杂度控制": 2,
+      "视觉质量": "N/A",
+      "文档质量": 2,
+      "多余内容": 2,
+      "执行成本": 2
+    },
+    "B": {
+      "正确性": 2,
+      "任务完成度": 2,
+      "事实准确性": 2,
+      "可维护性": 2,
+      "复杂度控制": 2,
+      "视觉质量": "N/A",
+      "文档质量": 2,
+      "多余内容": 2,
+      "执行成本": 2
+    }
+  },
+  "summary": "实测环境 Python 3.14.10（临时目录复制素材后逐条运行）。两份修正文档的全部操作性声明均与 syncdocs.py 相符：--interval 默认 30（:5/:13）、--retries 默认 2（:6/:14）且二者解析后从未被读取（grep 仅命中注册行）、无轮询无重试、--prune 实为 --delete 且仅删目标端 *.md（实测 other.txt 存活、stale.md 被删）、--dry-run 返回 0、退出码 1 因 :57 'failures += 0' 而不可达仅由未捕获异常产生（实测 PermissionError traceback 指向 :51 write_bytes，exit=1，其后 z_after.md 未复制）、退出码 2 含 argparse 参数错误、目标根目录必须存在但子目录自动创建（:50）、无 shebang 仅标准库。两份核对记录均覆盖原文全部 11 条声明且 file:line 引用逐条无误，均未改实现。唯一差异维度为事实准确性（A 1，B 2）：A 的『实测输出』证据块经顺序复现不成立——(1) 末块 'chmod 000 src/a.md && python3 -I syncdocs.py src tgt → PermissionError（exit 1）' 在 A 自己的前序步骤（第 4 步已真实同步、tgt/a.md 更新）下重跑实得 exit=0 无任何输出，因 src/a.md 已不在待同步列表；(2) 第 3 步 touch 后 dry-run 仅列 'src/a.md'，顺序复现实际同时列出 src/sub/b.md；(3) --help 块省略了 'positional arguments:' 段与 '-h, --help' 行且无省略号标记，按原样不可复现。B 的证据全部复现成功，包括最特殊的 'PATH=… syncdocs --help 运行 5 秒无任何输出被 timeout 杀死（exit=124）'（实测 exit=124、stdout/stderr 均空，shell ENOEXEC 回退执行导致 ImageMagick import 挂起）、'--interval 0/-3 均 exit=0'、'运行耗时 0.041s'（实测恰为 0.041s）、grep 仅命中 :13/:14，以及修正后需补 shebang 才能入 PATH（实测补后 exit=0）。B 仅存一瑕疵不影响得分：用法示例沿用裸 `syncdocs`，依赖其安装节先补 shebang 才可运行，文中已自洽说明。按维度差值：仅事实准确性 A 落后 1 分，证据为上述三处不可复现实测输出。",
+  "evidence": {
+    "verification_env": "Python 3.14.10, /tmp/task03-verify, materials copied read-only",
+    "A_fact_accuracy_deduction": [
+      "A transcript final block claims 'chmod 000 src/a.md && python3 -I syncdocs.py src tgt -> PermissionError (exit 1)' but sequential rerun of A's own steps 2-6 yields exit=0 with no output (src/a.md not pending after step-4 sync)",
+      "A transcript step 3 lists only 'src/a.md' after touch; sequential rerun prints both src/a.md and src/sub/b.md (tgt/sub/b.md still missing)",
+      "A --help block omits 'positional arguments:' section and '-h, --help' line without ellipsis; not reproducible verbatim"
+    ],
+    "B_verified_claims": [
+      "PATH=… syncdocs --help under timeout 5: exit=124, zero stdout/stderr (reproduced exactly)",
+      "shebang added -> PATH execution exit=0",
+      "--interval 0 / -3 accepted exit=0; --interval 60 runtime 0.041s (exact match)",
+      "grep -n interval -> only :13; grep -n retries -> only :14",
+      "argparse bad flag exit=2; missing dirs exit=2; --delete removes stale.md, keeps other.txt"
+    ],
+    "shared_verified_facts": [
+      "DEFAULT_INTERVAL=30 (:5), DEFAULT_RETRIES=2 (:6), both args never read after parse",
+      "exit 1 unreachable: :46 failures=0, :57 failures+=0; only via uncaught exception at :51 write_bytes (reproduced, later files not synced)",
+      "--delete only *.md (:52-57); subdirs auto-created (:50); target-newer not overwritten; equal mtime -> empty dry-run"
+    ]
+  }
+}

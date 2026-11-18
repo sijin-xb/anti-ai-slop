@@ -1,0 +1,28 @@
+{
+  "task": "task05",
+  "scores": {
+    "A": {
+      "correctness": 2,
+      "task_completion": 2,
+      "factual_accuracy": 2,
+      "maintainability": 2,
+      "complexity_control": 2,
+      "visual_quality": "N/A",
+      "documentation_quality": 2,
+      "extraneous_content": 2,
+      "execution_cost": 2
+    },
+    "B": {
+      "correctness": 2,
+      "task_completion": 2,
+      "factual_accuracy": 1,
+      "maintainability": 2,
+      "complexity_control": 2,
+      "visual_quality": "N/A",
+      "documentation_quality": 2,
+      "extraneous_content": 2,
+      "execution_cost": 2
+    }
+  },
+  "summary": "两版修正文档均经实测验证（python3 -I 实跑 getcfg.py 全分支：文件缺失 rc=2 且不建文件、非法 JSON rc=2、键缺失 rc=1、--default rc=0、raw 对容器仍输出 JSON、--timeout 无行为）：A 与 B 的 README.md/README.zh-CN.md 对代码的每条操作性声明（timeout 被解析未使用、raw 仅对标量裸输出、退出码 2 而非 3、删除自动建空配置虚构）全部正确，镜像一致性逐项比对（标题结构、bash 命令逐字一致、数字、退出码表 0/1/2 成员）均完整，且各自通过 anti_slop_lint（0 提示，exit 0，已复跑确认）。唯一计分差异在事实准确性：B 的核对记录首行「事实来源：materials/getcfg.py（52 行，行号均指该文件）」中行数有误——实际 wc -l 为 51 行（文件以单个换行结尾）；B 其余 20 余处 file:line 引用逐条核对均正确、无误报，故按保守原则记 1 而非 0。A 的核对记录所有可检验声明（实测输出逐字、grep 结论、lint 三次运行 0 提示/exit 0、行数 EN 32/ZH 31）全部复现成功，无事实错误；其记录中的悬空引用「实测 T7-T10」与「12 项」（基线表实为 11 行）属编辑瑕疵，未构成对 getcfg.py 的事实性错误，不计入事实准确性扣分。其余八维（正确性、任务完成度、可维护性、复杂度控制、文档质量、多余内容、执行成本）两版证据相当，均记 2；视觉质量 N/A。总分 A 16 / B 15，结论以事实准确性差 1 分（B: 「52 行」vs 实测 51 行）为准。"
+}

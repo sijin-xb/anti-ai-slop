@@ -1,0 +1,82 @@
+{
+  "task": "task01",
+  "scores": {
+    "A": {
+      "correctness": {
+        "score": 2,
+        "evidence": "快速开始三条命令实测逐条可执行：add SKU-100 --qty 5 --location B2 → take --qty 2 → list 输出「SKU-100\\t3\\tB2」，与文档逐字符一致；错误路径（unknown sku / insufficient stock）实测 stderr、退出码 1、库文件不变，全部成立。"
+      },
+      "task_completion": {
+        "score": 1,
+        "evidence": "明确要求项全部交付（命令/旗标/默认值/退出码均与 fixture 一致，第一屏含安装与最小示例），但边界处理不完整：原文「## 已知限制\n- 对已有条目执行 `add` 且未给 `--location` 时，库位被重置为默认值 `A1`。\n- `--qty` 不做正负校验，负数会反向改动库存。」止步于两条；实测遗漏的真实边界包括：库文件非合法 JSON 时抛未捕获 JSONDecodeError 以退出码 1 结束（inventory_cli.py:14，实测 exit=1）、库文件「首次 add 时自动创建」时机、`-h`/`--help` 退出码 0、退出码 2 的枚举仅「缺少参数、未知子命令、`--db` 写在子命令之后」三类而实测 `--qty` 非整数与未知参数（如 --foo）同样退出码 2。"
+      },
+      "factual_accuracy": {
+        "score": 2,
+        "evidence": "逐旗标/默认值/退出码实测核对：--db 默认 inventory.db 且写在子命令之后实测报 unrecognized arguments 退出码 2；add 累加且库位覆盖（实测显式 --location Z9 生效）；take 两类失败消息「unknown sku: SKU-100」「insufficient stock: SKU-100」逐字符一致且写 stderr、库不变；list 空库无输出退出码 0；JSON 库 UTF-8 缩进 2。全部声明零编造。"
+      },
+      "maintainability": {
+        "score": 2,
+        "evidence": "结构为 快速开始→命令→库文件格式→退出码→已知限制，参数与退出码用表格，单文件无冗余依赖，后续实现变更时逐节可定位更新。"
+      },
+      "complexity_control": {
+        "score": 2,
+        "evidence": "仅标准库、无多余抽象；全文 1980 字节，每个小节对应 fixture 真实行为，无无收益配置。"
+      },
+      "visual_quality": {
+        "score": null,
+        "evidence": "N/A：纯文本 Markdown 交付物，任务明示与视觉无关，本维度不适用。"
+      },
+      "documentation_quality": {
+        "score": 2,
+        "evidence": "开头即定义句「基于单个 JSON 库文件的命令行库存工具，按 SKU 记录数量与库位。」；无套话、元话语、收尾客套；第一屏可直接复制安装说明与最小示例；篇幅远在预算内。"
+      },
+      "extraneous_content": {
+        "score": 2,
+        "evidence": "各节均可回答「删掉会损失什么」：已知限制两条对应实测真实怪癖（库位重置、负数反向），库文件格式节描述用户可直接读改的数据文件，无模板残留或未经要求的章节。"
+      },
+      "execution_cost": {
+        "score": 2,
+        "evidence": "交付物为单一 README.md，无解释性对话、无过程播报、无追问痕迹，符合「纯文本交付物」要求。"
+      }
+    },
+    "B": {
+      "correctness": {
+        "score": 2,
+        "evidence": "快速上手四条命令原样重放实测输出「SKU-001\\t90\\tA1」，与文档展示逐字符一致（100+20-30=90）；所有命令可直接复制运行。"
+      },
+      "task_completion": {
+        "score": 2,
+        "evidence": "明确要求全部交付且边界处理完整：覆盖损坏 JSON（「文件内容不是合法 JSON 时会抛出未捕获的异常并以退出码 1 结束」，实测 exit=1）、建库时机（「首次 add 时自动创建」，实测）、「list 不会创建库文件」（实测未建）、追加顺序 vs 展示排序（实测 db 顺序 ['SKU-100','B-2','A-10','A-2'] 与 list 排序输出并存）、非 ASCII 原样保存（实测中文 SKU/货位）、-h/--help 退出码 0（实测）、退出码 2 五类条件逐条实测命中。"
+      },
+      "factual_accuracy": {
+        "score": 2,
+        "evidence": "操作性声明全部可溯源至实测：--db 写在子命令后「会报 unrecognized arguments 并以退出码 2 结束」逐字符命中实测错误行；「帮助里的程序名显示为 inventory」命中 usage: inventory；unknown sku/insufficient stock 消息、stderr、退出码 1、不写库均逐条验证；负数 qty add 等于扣减、take 等于增加实测成立。零编造。"
+      },
+      "maintainability": {
+        "score": 2,
+        "evidence": "结构为 安装→快速上手→命令（全局参数表+三个子命令）→数据文件→退出码→边界行为，分层与 fixture 行为一一对应，表格化参数与退出码便于同步更新。"
+      },
+      "complexity_control": {
+        "score": 2,
+        "evidence": "3101 字节，增量内容均为实测有收益的行为文档（帮助程序名、建库时机、损坏 JSON、插入顺序），无无收益抽象或依赖。"
+      },
+      "visual_quality": {
+        "score": null,
+        "evidence": "N/A：纯文本 Markdown 交付物，任务明示与视觉无关，本维度不适用。"
+      },
+      "documentation_quality": {
+        "score": 2,
+        "evidence": "开头即定义句「单文件库存命令行工具：add 新增/累加、take 扣减、list 列出，全部数据存在一个 JSON 文件里。」；无套话/元话语/收尾客套；加粗仅用于关键约束（必须写在子命令之前、改写），有目的；篇幅在预算内。"
+      },
+      "extraneous_content": {
+        "score": 2,
+        "evidence": "各节删掉均有损失：安装节回应任务「第一屏能复制到安装」要求，边界行为唯一一条对应实测真实怪癖，数据文件节字段/顺序说明非模板填充，无残留章节。"
+      },
+      "execution_cost": {
+        "score": 2,
+        "evidence": "交付物为单一 README.md，无解释性对话、无过程播报，符合「纯文本交付物」要求。"
+      }
+    }
+  },
+  "summary": "九维中八维并列满分（正确性、事实准确性、可维护性、复杂度控制、文档质量、多余内容、执行成本均实测无硬伤，视觉质量按任务要求 N/A），唯一差距在任务完成度（B 2 - A 1）：两份 README 的命令、旗标、默认值、退出码经临时目录实测逐条吻合、零编造，但 A 的边界文档止于「已知限制」两条，实测遗漏损坏 JSON 未捕获异常退出码 1（inventory_cli.py:14）、库文件创建时机、-h/--help 退出码 0、--qty 非整数与未知参数两类退出码 2 场景；B 逐条覆盖且每条命中实测输出（unrecognized arguments 逐字符、首次 add 建库、list 不建库、追加顺序、非 ASCII 原样、-h 退出 0），边界处理完整。"
+}

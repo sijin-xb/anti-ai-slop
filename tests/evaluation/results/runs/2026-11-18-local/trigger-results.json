@@ -1,0 +1,18 @@
+{
+  "_method": "Fresh general-purpose agent per prompt, 2026-11-19. The agent saw ONLY the skill name + frontmatter description (mirroring description-based routing) and one user prompt; it was not told the expected answer and had no file access. First sentence forced to a binary decision. p01's first attempt was killed by a platform concurrency limit and re-run with a fresh agent; the retry result is recorded.",
+  "_scope": "One sample per prompt, single model family (same as the orchestrating agent), platform-default sampling. This is an automated trigger smoke test, not a replication-grade study; broader models and repeated samples belong to the manual protocol in tests/evaluation/README.md.",
+  "results": [
+    {"id": "p01", "category": "code-implementation", "expected_use": true, "decision": "调用", "agree": true},
+    {"id": "p02", "category": "refactoring", "expected_use": true, "decision": "调用", "agree": true},
+    {"id": "p03", "category": "technical-docs", "expected_use": true, "decision": "调用", "agree": true},
+    {"id": "p04", "category": "readme", "expected_use": true, "decision": "调用", "agree": true},
+    {"id": "p05", "category": "ui-design", "expected_use": true, "decision": "调用", "agree": true},
+    {"id": "p06", "category": "svg-animation", "expected_use": true, "decision": "调用", "agree": true},
+    {"id": "p07", "category": "fact-checking", "expected_use": true, "decision": "调用", "agree": true},
+    {"id": "p08", "category": "research-analysis", "expected_use": true, "decision": "调用", "agree": true},
+    {"id": "p09", "category": "plain-chat", "expected_use": false, "decision": "不调用", "agree": true},
+    {"id": "p10", "category": "pure-translation", "expected_use": false, "decision": "不调用", "agree": true},
+    {"id": "p11", "category": "simple-fact-query", "expected_use": false, "decision": "不调用", "agree": true}
+  ],
+  "summary": {"total": 11, "agreement": 11, "positive_correct": 8, "negative_correct": 3}
+}
