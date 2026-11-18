@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Run test suite
+        run: python -m unittest discover -s tests -v
+      - name: Corpus metrics report
+        run: python scripts/corpus_metrics.py --all-profiles --json
+
+  self-check:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.14"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Lint the project's own documentation (zh-doc)
+        run: >
+          python scripts/anti_slop_lint.py --profile zh-doc --fail-on warning
+          SKILL.md README.md references/ docs/
+      - name: Lint the project's own documentation (general)
+        run: >
+          python scripts/anti_slop_lint.py --fail-on warning
+          SKILL.md README.md references/ docs/

@@ -93,6 +93,10 @@ class GeneralDetectionTests(unittest.TestCase):
             with self.subTest(phrase=phrase.strip()):
                 self.assertNotIn("filler", categories(phrase))
 
+    def test_non_obvious_design_reason_is_not_filler(self):
+        self.assertNotIn("filler", categories("注释解释非显而易见的设计原因。\n"))
+        self.assertIn("filler", categories("显而易见，此处的参数必须为正数。\n"))
+
     def test_ai_persona_is_meta(self):
         for phrase in (
             "As an AI language model, I suggest checking logs.\n",
