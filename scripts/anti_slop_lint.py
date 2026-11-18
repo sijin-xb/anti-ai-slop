@@ -9,7 +9,13 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Iterable
 
+try:
+    from .rules import SEVERITY_BY_ID, SEVERITY_RANK
+except ImportError:
+    from rules import SEVERITY_BY_ID, SEVERITY_RANK
+
 TEXT_SUFFIXES = {".md", ".markdown", ".mdx", ".txt", ".rst"}
+FENCE_SUFFIXES = TEXT_SUFFIXES - {".rst"}
 
 Pattern = tuple[str, re.Pattern[str], str]
 
@@ -261,15 +267,18 @@ def rhetorical_contrast(text: str) -> bool:
     for match in re.finditer(r"(?:这|它|该方案|此方案)?(?:并)?不是([^。！？\n]{1,24})而是", text):
         if not CONTRAST_DIAGNOSTIC.search(match.group(1)):
             return True
-    return bool(re.search(r"并非[^。！？\n]{1,24}而是", text))
+    for match in re.finditer(r"并非([^。！？\n]{1,24})而是", text):
+        if not CONTRAST_DIAGNOSTIC.search(match.group(1)):
+            return True
+    return False
 
 INLINE_CODE = re.compile(r"(?<!`)(`+)(?!`)(?:(?!`)\1(?!`)|.)*?(?<!`)\1(?!`)")
-FENCE = re.compile(r"^\s*(```|~~~)")
 HEADING = re.compile(r"^\s{0,3}#{1,6}\s+")
 LIST_ITEM = re.compile(r"^\s*(?:[-+*]|\d+[.)])\s+")
 TABLE_ROW = re.compile(r"^\s*\|.*\|\s*$")
 BLOCKQUOTE = re.compile(r"^\s*>")
 REF_LINK_DEF = re.compile(r"^\s*\[[^\]]+\]:\s+\S+")
+HR_LINE = re.compile(r"^\s{0,3}(?:={2,}|-{3,}|\*{3,}|_{3,})\s*$")
 ABBREV = re.compile(
     r"\b(?:Mr|Mrs|Ms|Dr|Prof|Sr|Jr|St|vs|etc|No|Fig|Vol|Rev|Approx|Dept|Inc|Ltd|Co)\.|"
     r"\b(?:e\.g|i\.e|U\.S|U\.K|a\.m|p\.m)\.|"
@@ -281,9 +290,9 @@ ABBREV = re.compile(
 )
 ORDINAL_BEFORE_LOWERCASE = re.compile(r"\b\d+\.(?=\s+[a-zäöüß])")
 GUILLEMETS = re.compile(r"«[^»]*»")
-SENTINEL = ""
-QUOTE_MASK = str.maketrans({".": SENTINEL, "!": "", "?": "", ";": ""})
-QUOTE_UNMASK = str.maketrans({SENTINEL: ".", "": "!", "": "?", "": ";"})
+SENTINEL = "\ue000"
+QUOTE_MASK = str.maketrans({".": "\ue000", "!": "\ue001", "?": "\ue002", ";": "\ue003"})
+QUOTE_UNMASK = str.maketrans({"\ue000": ".", "\ue001": "!", "\ue002": "?", "\ue003": ";"})
 SENTENCE_BREAK = re.compile(r"(?<=[。！？；!?;])|(?<=\.)(?=\s+)|(?<=…)(?=\s+[A-ZÀ-ÖØ-ÞА-ЯЁ])")
 
 README_KINDS = ("readme",)
@@ -318,6 +327,10 @@ class Finding:
     category: str
     excerpt: str
     hint: str
+    severity: str = "advisory"
+
+    def __post_init__(self) -> None:
+        self.severity = SEVERITY_BY_ID.get(self.category, "advisory")
 
 MD_ANCHOR = re.compile(r"!?\[([^\]]*)\]\([^)]*\)")
 INLINE_URL = re.compile(r"<?https?://[^\s)>]+>?")
@@ -354,6 +367,18 @@ def count_hangul(text: str) -> int:
 
 def count_east_asian(text: str) -> int:
     return count_cjk(text) + count_kana(text) + count_hangul(text)
+
+def count_wide(text: str) -> int:
+    """Double-width East Asian characters: han, kana, hangul syllables and
+    jamo, CJK punctuation (U+3000–U+303F) and fullwidth forms (U+FF01–U+FF5E)."""
+    return sum(1 for ch in text if (
+        "一" <= ch <= "鿿"
+        or "぀" <= ch <= "ヿ"
+        or "가" <= ch <= "힯"
+        or "ᄀ" <= ch <= "ᇿ"
+        or "　" <= ch <= "〿"
+        or "！" <= ch <= "～"
+    ))
 
 def has_cjk(text: str) -> bool:
     return any("一" <= ch <= "鿿" for ch in text)
@@ -417,17 +442,95 @@ def frontmatter_length(lines: list[str]) -> int:
                 return index
     return 0
 
-def prose_text(lines: list[str]) -> str:
+# ---------------------------------------------------------------------------
+# Line classification: fences, HTML comments, RST blocks.
+# ---------------------------------------------------------------------------
+
+FENCE_LINE = re.compile(r"^\s*(`{3,}|~{3,})(.*)$")
+
+def classify_lines(lines: list[str], rst: bool = False) -> set[int]:
+    """Line numbers whose content must never be treated as prose.
+
+    Covers fenced code blocks (delimiter + interior), multi-line HTML
+    comments and, for .rst, comment/directive blocks and literal blocks.
+    Fence state is a proper parser: it records the fence character and the
+    opening length; a fence only closes on a run of the same character at
+    least as long as the opener with nothing else on the line, and an
+    unclosed fence extends to end of file (CommonMark). ``~~~`` never closes
+    a backtick fence and vice versa, so ``~~~`` section underlines in RST
+    are handled by the rst branch instead.
+    """
+    if rst:
+        return rst_excluded_lines(lines)
+    excluded: set[int] = set()
+    open_char = ""
+    open_len = 0
+    in_comment = False
+    for number, raw in enumerate(lines, start=1):
+        if open_char:
+            excluded.add(number)
+            match = FENCE_LINE.match(raw)
+            if (match and match.group(1)[0] == open_char
+                    and len(match.group(1)) >= open_len
+                    and not match.group(2).strip()):
+                open_char = ""
+            continue
+        if in_comment:
+            excluded.add(number)
+            if "-->" in INLINE_CODE.sub("", raw):
+                in_comment = False
+            continue
+        match = FENCE_LINE.match(raw)
+        if match:
+            char, length = match.group(1)[0], len(match.group(1))
+            if not (char == "`" and "`" in match.group(2)):
+                open_char, open_len = char, length
+                excluded.add(number)
+            continue
+        searchable = INLINE_CODE.sub("", raw)
+        if "<!--" in searchable and "-->" not in searchable[searchable.find("<!--") + 4:]:
+            in_comment = True
+            excluded.add(number)
+    return excluded
+
+def rst_excluded_lines(lines: list[str]) -> set[int]:
+    """RST comments (``..`` blocks, including indented directive content)
+    and literal blocks (a paragraph ending in ``::`` followed by an indented
+    block). ``~~~`` / ``===`` section underlines are left visible; they are
+    filtered as structural rows, not swallowed as fence interiors."""
+    excluded: set[int] = set()
+    mode = ""
+    pending_literal = False
+    for number, raw in enumerate(lines, start=1):
+        stripped = raw.strip()
+        if mode:
+            excluded.add(number)
+            if not stripped or raw[:1] in " \t":
+                continue
+            mode = ""
+        if stripped.startswith(".."):
+            mode = "directive"
+            excluded.add(number)
+            continue
+        if pending_literal:
+            if not stripped:
+                continue
+            if raw[:1] in " \t":
+                mode = "literal"
+                pending_literal = False
+                excluded.add(number)
+                continue
+            pending_literal = False
+        if stripped.endswith("::") and not stripped.startswith(".."):
+            pending_literal = True
+    return excluded
+
+def prose_text(lines: list[str], rst: bool = False) -> str:
+    excluded = classify_lines(lines, rst)
     start = frontmatter_length(lines)
-    in_fence = False
     kept: list[str] = []
     for number, raw in enumerate(lines, start=1):
-        if number <= start:
-            continue
-        if FENCE.match(raw):
-            in_fence = not in_fence
-            continue
-        if in_fence or REF_LINK_DEF.match(raw):
+        if number <= start or number in excluded or REF_LINK_DEF.match(raw):
             continue
         kept.append(NON_PROSE.sub(" ", strip_inline_code(raw)))
     return "\n".join(kept)
@@ -438,26 +541,50 @@ def read_lines(path: Path) -> list[str]:
     except UnicodeDecodeError as exc:
         raise ValueError(f"文件不是有效 UTF-8 文本：{path}") from exc
 
-def resolve_language(profile: str, lang: str, lines: list[str]) -> str:
+def resolve_language(profile: str, lang: str, lines: list[str], rst: bool = False) -> str:
     available = PROFILES[profile]["langs"]
     if lang != "auto":
         if lang not in available:
             raise ValueError(f"profile {profile} 不包含语言包 {lang}（可用：{', '.join(available)}）")
         return lang
-    detected = detect_language(prose_text(lines))
+    detected = detect_language(prose_text(lines, rst))
     return detected if detected in available else ""
 
 def measure(text: str, cjk_limit: int, latin_limit: int) -> tuple[int, int]:
+    """Return (count, limit) under the documented counting standard.
+
+    Counting standard (see docs/linter.md), in half-width units:
+    - East Asian chars (han, kana, hangul syllables and jamo) weigh 2.
+    - CJK punctuation and fullwidth forms (。、「」！＂～…) weigh 0, matching
+      the historic behaviour where a 40-han sentence ending in 。 passed.
+    - Every remaining character (Latin letters, digits, spaces, halfwidth
+      punctuation) weighs 1. Pure Latin text therefore keeps the historic
+      ``len()`` count, and pure Chinese keeps the historic han-only count.
+
+    Mixed text counts BOTH parts: this fixes the old behaviour where a
+    sentence containing a single han character was measured by its han count
+    only, letting long English sentences slip through the Chinese budget.
+
+    Budget: Japanese or Korean text uses the wide Latin budget doubled (long
+    inflected words need more characters — 90 chars keep working). Otherwise
+    the budget follows the dominant script: East-Asian-dominant (2×EA ≥
+    narrow) uses the CJK budget doubled, so 40 han chars keep the old limit;
+    Latin-dominant text with stray CJK chars uses the plain Latin budget.
+    """
     han = count_cjk(text)
     kana = count_kana(text)
     hangul = count_hangul(text)
-    if hangul and hangul >= han:
-        return hangul, latin_limit
-    if kana and kana * 5 >= han + kana:
-        return han + kana, latin_limit
-    if han:
-        return han, cjk_limit
-    return len(text), latin_limit
+    ea = han + kana + hangul
+    wide_punct = count_wide(text) - ea
+    narrow = len(text) - count_wide(text)
+    if ea == 0 and wide_punct == 0:
+        return len(text), latin_limit
+    count = 2 * ea + narrow
+    if (hangul and hangul >= han) or (kana and kana * 5 >= han + kana):
+        return count, 2 * latin_limit
+    if 2 * ea >= narrow:
+        return count, 2 * cjk_limit
+    return count, latin_limit
 
 def collect_files(inputs: Iterable[str]) -> list[Path]:
     files: list[Path] = []
@@ -466,7 +593,13 @@ def collect_files(inputs: Iterable[str]) -> list[Path]:
         if not path.exists():
             raise FileNotFoundError(f"路径不存在：{path}")
         if path.is_dir():
-            files.extend(p for p in path.rglob("*") if p.is_file() and p.suffix.lower() in TEXT_SUFFIXES)
+            for candidate in path.rglob("*"):
+                if not candidate.is_file() or candidate.suffix.lower() not in TEXT_SUFFIXES:
+                    continue
+                relative = candidate.relative_to(path)
+                if any(part.startswith(".") for part in relative.parts[:-1]):
+                    continue
+                files.append(candidate)
         elif path.is_file():
             if path.suffix.lower() not in TEXT_SUFFIXES:
                 raise ValueError(f"不支持的文件类型：{path}（支持：{', '.join(sorted(TEXT_SUFFIXES))}）")
@@ -490,7 +623,8 @@ def scan_file(
 ) -> list[Finding]:
     spec = PROFILES[profile]
     lines = read_lines(path)
-    active = resolve_language(profile, lang, lines)
+    rst = path.suffix.lower() == ".rst"
+    active = resolve_language(profile, lang, lines, rst)
     patterns = LANG_PACKS["universal"] + LANG_PACKS.get(active, ())
     if active == "zh" or profile == "zh-doc":
         patterns = patterns + LANG_PACKS["en"]
@@ -498,9 +632,9 @@ def scan_file(
         patterns = patterns + spec["extra_patterns"]
 
     findings: list[Finding] = []
-    in_fence = False
+    excluded = classify_lines(lines, rst)
     paragraph_lines: list[int] = []
-    previous_prose: tuple[str, int] | None = None
+    seen_prose: dict[str, int] = {}
     frontmatter_end = frontmatter_length(lines)
 
     def close_paragraph() -> None:
@@ -516,17 +650,11 @@ def scan_file(
     for number, raw in enumerate(lines, start=1):
         if number <= frontmatter_end:
             continue
-        if FENCE.match(raw):
+        if number in excluded:
             close_paragraph()
-            in_fence = not in_fence
-            previous_prose = None
             continue
-        if in_fence:
-            continue
-
         if extra_ignore and extra_ignore.search(raw):
             close_paragraph()
-            previous_prose = None
             continue
 
         prose = strip_inline_code(raw).strip()
@@ -534,26 +662,33 @@ def scan_file(
             close_paragraph()
             continue
 
-        structural = (
-            HEADING.match(raw) or LIST_ITEM.match(raw)
-            or TABLE_ROW.match(raw) or BLOCKQUOTE.match(raw)
-            or REF_LINK_DEF.match(raw)
-        )
+        is_heading = HEADING.match(raw) is not None
+        is_table = TABLE_ROW.match(raw) is not None
+        is_list = LIST_ITEM.match(raw) is not None
+        is_quote = BLOCKQUOTE.match(raw) is not None
+        is_ref = REF_LINK_DEF.match(raw) is not None
+        is_hr = HR_LINE.match(raw) is not None
+        structural = is_heading or is_table or is_list or is_quote or is_ref or is_hr
+
+        if is_quote or is_hr:
+            close_paragraph()
+            continue
         if structural:
             close_paragraph()
-            previous_prose = None
         else:
             paragraph_lines.append(number)
             normalized = re.sub(r"\s+", " ", prose).casefold()
             long_enough = len(normalized) >= 24 or count_east_asian(normalized) >= 12
-            if previous_prose and normalized == previous_prose[0] and long_enough:
+            first = seen_prose.get(normalized)
+            if first is not None and long_enough:
                 findings.append(Finding(
                     str(path), number, 1, "repeated-line", prose[:100],
-                    f"与第 {previous_prose[1]} 行正文重复；确认是否有意复用",
+                    f"与第 {first} 行正文重复；确认是否有意复用",
                 ))
-            previous_prose = (normalized, number)
+            else:
+                seen_prose.setdefault(normalized, number)
 
-        if not (HEADING.match(raw) or TABLE_ROW.match(raw) or LIST_ITEM.match(raw) or REF_LINK_DEF.match(raw)):
+        if not structural:
             line_len, line_limit = measure(prose, max_line, LATIN_LINE_LIMIT)
             if line_len > line_limit:
                 findings.append(Finding(
@@ -589,12 +724,13 @@ def scan_file(
     budget = spec["readme_budget"]
     if budget and is_readme(path):
         line_budget, char_budget = budget
-        if len(lines) > line_budget:
+        body = lines[frontmatter_end:]
+        if len(body) > line_budget:
             findings.append(Finding(
-                str(path), 1, 1, "readme-line-budget", f"{len(lines)} 行",
+                str(path), 1, 1, "readme-line-budget", f"{len(body)} 行",
                 f"中文文档模式：README 主体预算 {line_budget} 行；删除低价值内容，不要改格式规避",
             ))
-        cjk = count_cjk("\n".join(lines))
+        cjk = count_cjk("\n".join(body))
         if cjk > char_budget:
             findings.append(Finding(
                 str(path), 1, 1, "readme-char-budget", f"{cjk} 个中文字符",
@@ -605,16 +741,12 @@ def scan_file(
 
 def parity_prose_lines(path: Path) -> list[tuple[int, str]]:
     lines = read_lines(path)
+    rst = path.suffix.lower() == ".rst"
+    excluded = classify_lines(lines, rst)
     start = frontmatter_length(lines)
-    in_fence = False
     result: list[tuple[int, str]] = []
     for number, raw in enumerate(lines, start=1):
-        if number <= start:
-            continue
-        if FENCE.match(raw):
-            in_fence = not in_fence
-            continue
-        if in_fence:
+        if number <= start or number in excluded:
             continue
         result.append((number, NON_PROSE.sub(" ", strip_inline_code(raw))))
     return result
@@ -625,18 +757,15 @@ def _number_sort_key(token: str) -> tuple[int, str]:
 def parity_findings(main: Path, pair: Path) -> list[Finding]:
     findings: list[Finding] = []
 
-    def structure(lines: list[str]) -> tuple[Counter, int]:
+    def structure(path: Path) -> tuple[Counter, int]:
+        lines = read_lines(path)
+        rst = path.suffix.lower() == ".rst"
+        excluded = classify_lines(lines, rst)
         headings: Counter = Counter()
         tables = 0
-        in_fence = False
         start = frontmatter_length(lines)
         for number, raw in enumerate(lines, start=1):
-            if number <= start:
-                continue
-            if FENCE.match(raw):
-                in_fence = not in_fence
-                continue
-            if in_fence:
+            if number <= start or number in excluded:
                 continue
             heading = re.match(r"^\s{0,3}(#{1,6})\s", raw)
             if heading:
@@ -645,8 +774,8 @@ def parity_findings(main: Path, pair: Path) -> list[Finding]:
                 tables += 1
         return headings, tables
 
-    main_headings, main_tables = structure(read_lines(main))
-    pair_headings, pair_tables = structure(read_lines(pair))
+    main_headings, main_tables = structure(main)
+    pair_headings, pair_tables = structure(pair)
 
     for level in sorted(set(main_headings) | set(pair_headings)):
         have, want = main_headings.get(level, 0), pair_headings.get(level, 0)
@@ -698,7 +827,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--lang", choices=["auto", *ALL_LANGS], default="auto",
                         help="语言包：auto（按文档主语言检测，默认）或强制指定；zh-doc 只含 zh")
     parser.add_argument("--json", action="store_true", help="输出 JSON")
-    parser.add_argument("--strict", action="store_true", help="发现任意问题时返回退出码 1")
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("--strict", action="store_true",
+                       help="发现任意问题时返回退出码 1（等价 --fail-on advisory）")
+    group.add_argument("--fail-on", choices=("advisory", "warning", "error", "none"), default=None,
+                       help="返回退出码 1 的最低严重程度（advisory=任何提示）；默认不因提示改变退出码")
     parser.add_argument("--max-line", type=int, help="行长阈值；默认 general 140 / zh-doc 120")
     parser.add_argument("--max-sentence", type=int, help="句长阈值；默认 general 90 / zh-doc 40")
     parser.add_argument("--max-paragraph", type=int, help="段落行数阈值；默认 general 8 / zh-doc 4")
@@ -716,6 +849,7 @@ def main(argv: list[str] | None = None) -> int:
     max_paragraph = args.max_paragraph if args.max_paragraph is not None else spec["max_paragraph"]
     if min(max_line, max_sentence, max_paragraph) < 1:
         parser.error("长度阈值必须大于 0")
+    threshold = SEVERITY_RANK[args.fail_on] if args.fail_on else (1 if args.strict else 0)
 
     try:
         files = collect_files(args.paths)
@@ -736,7 +870,9 @@ def main(argv: list[str] | None = None) -> int:
         findings: list[Finding] = []
         languages: dict[str, str] = {}
         for path in files:
-            languages[str(path)] = args.lang if args.lang != "auto" else detect_language(prose_text(read_lines(path)))
+            rst = path.suffix.lower() == ".rst"
+            languages[str(path)] = (args.lang if args.lang != "auto"
+                                    else detect_language(prose_text(read_lines(path), rst)))
             findings.extend(scan_file(
                 path,
                 profile=args.profile,
@@ -758,6 +894,8 @@ def main(argv: list[str] | None = None) -> int:
             "languages": languages,
             "files_scanned": len(files),
             "finding_count": len(findings),
+            "severity_counts": {name: sum(1 for item in findings if item.severity == name)
+                                for name in ("error", "warning", "advisory")},
             "findings": [asdict(item) for item in findings],
             "note": "Findings are review candidates, not automatic proof of bad writing.",
         }, ensure_ascii=False, indent=2))
@@ -767,15 +905,19 @@ def main(argv: list[str] | None = None) -> int:
             count = sum(item.path == str(path) for item in findings)
             print(f"{path}: {count} 条提示")
         for item in findings:
-            print(f"  {item.path}:{item.line}:{item.column} [{item.category}] {item.excerpt}")
+            print(f"  {item.path}:{item.line}:{item.column} [{item.category}/{item.severity}] {item.excerpt}")
             print(f"    {item.hint}")
         if pair_paths:
             print(f"语言对对照：{', '.join(str(pair) for pair in pair_paths)}")
-        print(f"扫描 {len(files)} 个文件，发现 {len(findings)} 条提示。")
+        counts = Counter(item.severity for item in findings)
+        summary = f"扫描 {len(files)} 个文件，发现 {len(findings)} 条提示"
+        if findings:
+            summary += f"（error {counts.get('error', 0)} / warning {counts.get('warning', 0)} / advisory {counts.get('advisory', 0)}）"
+        print(summary + "。")
         if not findings:
             print("未发现已配置模式；这不代表事实或整体质量已通过审核。")
 
-    return 1 if args.strict and findings else 0
+    return 1 if threshold and any(SEVERITY_RANK.get(item.severity, 1) >= threshold for item in findings) else 0
 
 if __name__ == "__main__":
     raise SystemExit(main())

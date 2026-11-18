@@ -816,8 +816,8 @@ class SentenceAndCountTests(unittest.TestCase):
         self.assertNotIn("long-sentence", categories(japanese + "\n", "zh-doc"))
         chinese = "这是一个包含超过四十个中文字符的句子用来验证中文文档模式的单句预算是否真的生效而不是默认的九十个字符测试用例"
         self.assertIn("long-sentence", categories(chinese + "\n", "zh-doc"))
-        self.assertEqual(measure(japanese, 40, 90)[1], 90)
-        self.assertEqual(measure("설정" * 50 + "입니다.", 40, 90), (103, 90))
+        self.assertEqual(measure(japanese, 40, 90), (2 * count_east_asian(japanese), 180))
+        self.assertEqual(measure("설정" * 50 + "입니다.", 40, 90), (207, 180))
         self.assertIn("long-sentence", categories("설정" * 50 + "입니다.\n", "general"))
 
     def test_short_japanese_and_korean_repeats_are_flagged(self):
