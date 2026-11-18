@@ -3,6 +3,7 @@ reference routing, and documented CLI commands staying in sync with the code.
 """
 from __future__ import annotations
 
+import json
 import re
 import sys
 import unittest
@@ -190,3 +191,43 @@ class CorpusFilePresenceTests(unittest.TestCase):
             self.assertTrue(entry["expected"], name)
             self.assertTrue(set(entry["expected"]) <= LINTER_RULE_IDS | set(entry.get("zh_doc_expected", [])),
                             name)
+
+class TriggerCorpusTests(unittest.TestCase):
+    REQUIRED_CATEGORIES = {
+        "code-implementation", "refactoring", "technical-docs", "readme",
+        "ui-design", "svg-animation", "fact-checking", "research-analysis",
+        "plain-chat", "pure-translation", "simple-fact-query",
+    }
+
+    @classmethod
+    def setUpClass(cls):
+        cls.corpus = json.loads(
+            (SKILL_ROOT / "tests" / "evaluation" / "trigger-corpus.json").read_text(encoding="utf-8"))
+
+    def test_all_required_categories_covered(self):
+        covered = {entry["category"] for entry in self.corpus["positive"] + self.corpus["negative"]}
+        self.assertEqual(covered, self.REQUIRED_CATEGORIES)
+
+    def test_entries_are_well_formed(self):
+        for kind in ("positive", "negative"):
+            for entry in self.corpus[kind]:
+                self.assertTrue(entry["prompt"].strip(), entry)
+                self.assertEqual(entry["expected_use"], kind == "positive", entry)
+                self.assertTrue(entry.get("category") in self.REQUIRED_CATEGORIES, entry)
+        for entry in self.corpus["negative"]:
+            self.assertTrue(entry.get("excluded_by"), entry)
+
+    def test_description_exclusions_match_negative_corpus(self):
+        description = SKILL_MD.split("description:", 1)[1].split("metadata:", 1)[0]
+        self.assertIn("纯翻译", description)
+        self.assertIn("简单事实查询", description)
+
+    def test_evaluation_kit_is_complete(self):
+        root = SKILL_ROOT / "tests" / "evaluation"
+        self.assertTrue((root / "README.md").is_file())
+        self.assertTrue((root / "rubric.md").is_file())
+        self.assertTrue((root / "results" / "results-template.md").is_file())
+        tasks = sorted((root / "tasks").glob("task-*"))
+        self.assertGreaterEqual(len(tasks), 5)
+        for task in tasks:
+            self.assertTrue((task / "README.md").is_file(), task.name)

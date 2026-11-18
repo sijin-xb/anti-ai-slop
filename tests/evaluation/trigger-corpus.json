@@ -1,0 +1,18 @@
+{
+  "_purpose": "Trigger-quality corpus. Each entry is a realistic user prompt with the expected skill decision. EXPECTED USE / IGNORE reflects the documented scope in SKILL.md frontmatter. This corpus is consumed two ways: (1) a structure test in tests/test_project.py validates coverage and description consistency; (2) tests/evaluation/README.md prescribes the manual protocol for verifying real model trigger behavior. No automated model run has been performed; do not cite this file as evidence of tested triggering.",
+  "positive": [
+    {"prompt": "帮我写一个 Python 脚本批量重命名图片文件", "category": "code-implementation", "expected_use": true},
+    {"prompt": "这个模块抽象层层太多了，帮我重构掉没有收益的部分", "category": "refactoring", "expected_use": true},
+    {"prompt": "给新接口写一份 API 文档，参数和错误码都要全", "category": "technical-docs", "expected_use": true},
+    {"prompt": "项目要开源了，帮我写 README", "category": "readme", "expected_use": true},
+    {"prompt": "做一个设置页的 UI，风格跟现有设计系统一致", "category": "ui-design", "expected_use": true},
+    {"prompt": "给这个 logo 做一个加载动画 SVG", "category": "svg-animation", "expected_use": true},
+    {"prompt": "文档里说支持 50 个插件，你对着代码核对一下数字和命令", "category": "fact-checking", "expected_use": true},
+    {"prompt": "调研这三个库的维护状态和 API 稳定性，写一份对比分析", "category": "research-analysis", "expected_use": true}
+  ],
+  "negative": [
+    {"prompt": "今天天气不错，随便聊点什么", "category": "plain-chat", "expected_use": false, "excluded_by": "Skill 面向交付物，对话本身不产生交付物"},
+    {"prompt": "把这段英文 README 翻译成中文，保持原意就行", "category": "pure-translation", "expected_use": false, "excluded_by": "frontmatter description「不用于纯翻译」"},
+    {"prompt": "Go 的 channel 是什么时候创建的？", "category": "simple-fact-query", "expected_use": false, "excluded_by": "frontmatter description「简单事实查询」"}
+  ]
+}
