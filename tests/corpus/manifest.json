@@ -1,0 +1,324 @@
+{
+  "_labeling": "Labels are human-assigned (see docs/linter.md §corpus). expected = rule IDs that MUST fire under --profile general. zh_doc_expected = the FULL required set under --profile zh-doc (only listed for files whose rules zh-doc can actually enforce: zh, en, README and language-independent checks; zh-doc deliberately loads no de/fr/es/ja/ko packs). Extra hits on bad files are acceptable (the text genuinely violates more rules) and count as true positives. For good files, any finding is a false positive; the allowed field lists rule IDs with a documented exception and is empty in this corpus. Labels are reviewed together with the corpus diff.",
+  "good": {
+    "README-real.md": {
+      "note": "真实中文 README，含安装命令与代码块"
+    },
+    "de-changelog.md": {
+      "note": "德语变更日志"
+    },
+    "de-config.md": {
+      "note": "德语配置文档"
+    },
+    "de-pool.md": {
+      "note": "德语连接池文档"
+    },
+    "en-abbrev.md": {
+      "note": "英语缩写与版本号切句边界"
+    },
+    "en-api-webhooks.md": {
+      "note": "英语 API 文档"
+    },
+    "en-complex-markdown.md": {
+      "note": "四反引号嵌套围栏、HTML 注释、表格、引用链接定义"
+    },
+    "en-guarantees.md": {
+      "note": "准确保证表述、robust 统计术语、行内代码引用黑名单"
+    },
+    "en-technical.md": {
+      "note": "英语技术说明"
+    },
+    "es-config.md": {
+      "note": "西班牙语配置文档"
+    },
+    "es-install.md": {
+      "note": "西班牙语安装指南"
+    },
+    "es-pool.md": {
+      "note": "西班牙语连接池文档"
+    },
+    "fr-api-errors.md": {
+      "note": "法语 API 错误码文档"
+    },
+    "fr-config.md": {
+      "note": "法语配置文档"
+    },
+    "fr-pool.md": {
+      "note": "法语连接池文档"
+    },
+    "ja-cli-reference.md": {
+      "note": "日语命令参考"
+    },
+    "ja-config.md": {
+      "note": "日语配置文档"
+    },
+    "ja-pool.md": {
+      "note": "日语连接池文档"
+    },
+    "ko-config.md": {
+      "note": "韩语配置文档"
+    },
+    "ko-onboarding.md": {
+      "note": "韩语上手指南"
+    },
+    "ko-pool.md": {
+      "note": "韩语连接池文档"
+    },
+    "rust-docs.md": {
+      "note": "Rust 文档摘录"
+    },
+    "zh-architecture.md": {
+      "note": "中文设计文档，含中英混合长句边界"
+    },
+    "zh-callouts.md": {
+      "note": "GitHub 告警引用块、排障结论对照句豁免、表格"
+    },
+    "zh-complex-markdown.md": {
+      "note": "四反引号嵌套示例、维护者注释、行内代码中的感叹号"
+    },
+    "zh-inline-code.md": {
+      "note": "行内代码剔除边界"
+    },
+    "zh-mixed-terms.md": {
+      "note": "中英混合指标命名与数字单位"
+    },
+    "zh-table.md": {
+      "note": "表格与引用链接"
+    },
+    "zh-technical.md": {
+      "note": "中文技术说明"
+    },
+    "zh-we-usage.md": {
+      "note": "「我们」的客观用法边界"
+    }
+  },
+  "bad": {
+    "README.md": {
+      "expected": [
+        "long-paragraph"
+      ],
+      "zh_doc_expected": [
+        "readme-line-budget",
+        "readme-char-budget"
+      ],
+      "note": "超预算的占位 README"
+    },
+    "de-ai-persona.md": {
+      "expected": [
+        "meta",
+        "filler"
+      ],
+      "note": "德语 AI 自指"
+    },
+    "de-filler.md": {
+      "expected": [
+        "filler",
+        "meta",
+        "overclaim"
+      ],
+      "note": "德语套话与绝对化"
+    },
+    "en-fake-verification.md": {
+      "expected": [
+        "overclaim"
+      ],
+      "note": "虚构验证结果（未运行声称通过、100% 覆盖）；无测量的完成声明本身属人工事实核对范围",
+      "zh_doc_expected": [
+        "overclaim"
+      ]
+    },
+    "en-filler.md": {
+      "expected": [
+        "filler",
+        "meta",
+        "overclaim",
+        "thinking-leak"
+      ],
+      "note": "英语套话、元话语、过程泄漏",
+      "zh_doc_expected": [
+        "filler",
+        "meta",
+        "overclaim",
+        "thinking-leak"
+      ]
+    },
+    "en-flowery.md": {
+      "expected": [
+        "filler"
+      ],
+      "note": "过度修饰的营销文风",
+      "zh_doc_expected": [
+        "filler"
+      ]
+    },
+    "en-meta-closer.md": {
+      "expected": [
+        "meta",
+        "closer"
+      ],
+      "note": "英语 AI 自指与收尾客套",
+      "zh_doc_expected": [
+        "meta",
+        "closer"
+      ]
+    },
+    "en-overclaim.md": {
+      "expected": [
+        "overclaim"
+      ],
+      "note": "无依据绝对化保证",
+      "zh_doc_expected": [
+        "overclaim"
+      ]
+    },
+    "en-repetition.md": {
+      "expected": [
+        "repeated-line"
+      ],
+      "note": "全文重复行",
+      "zh_doc_expected": [
+        "repeated-line"
+      ]
+    },
+    "en-template-summary.md": {
+      "expected": [
+        "meta",
+        "filler",
+        "closer"
+      ],
+      "note": "模板化总结",
+      "zh_doc_expected": [
+        "meta",
+        "filler",
+        "closer"
+      ]
+    },
+    "en-visual-fake-metrics.md": {
+      "expected": [
+        "filler"
+      ],
+      "note": "视觉交付虚构数据（Lighthouse 分数、未测量的提升）；分数本身属人工核对范围，套话部分由 linter 检出",
+      "zh_doc_expected": [
+        "filler"
+      ]
+    },
+    "es-ai-persona.md": {
+      "expected": [
+        "meta",
+        "filler"
+      ],
+      "note": "西语 AI 自指"
+    },
+    "es-filler.md": {
+      "expected": [
+        "filler",
+        "meta",
+        "overclaim"
+      ],
+      "note": "西语套话"
+    },
+    "fr-ai-persona.md": {
+      "expected": [
+        "meta",
+        "filler"
+      ],
+      "note": "法语 AI 自指"
+    },
+    "fr-filler.md": {
+      "expected": [
+        "filler",
+        "meta",
+        "overclaim"
+      ],
+      "note": "法语套话"
+    },
+    "ja-ai-persona.md": {
+      "expected": [
+        "meta",
+        "filler"
+      ],
+      "note": "日语 AI 自指"
+    },
+    "ja-filler.md": {
+      "expected": [
+        "filler",
+        "meta"
+      ],
+      "note": "日语套话"
+    },
+    "ko-ai-persona.md": {
+      "expected": [
+        "meta",
+        "filler"
+      ],
+      "note": "韩语 AI 自指"
+    },
+    "ko-filler.md": {
+      "expected": [
+        "filler",
+        "meta"
+      ],
+      "note": "韩语套话"
+    },
+    "zh-ai-persona.md": {
+      "expected": [
+        "meta",
+        "thinking-leak",
+        "overclaim"
+      ],
+      "zh_doc_expected": [
+        "meta",
+        "thinking-leak",
+        "overclaim"
+      ],
+      "note": "中文 AI 自指与过程泄漏"
+    },
+    "zh-empty-complete.md": {
+      "expected": [
+        "filler",
+        "meta"
+      ],
+      "zh_doc_expected": [
+        "filler",
+        "meta",
+        "buzzword"
+      ],
+      "note": "空洞但看似完整的章节"
+    },
+    "zh-fake-verification.md": {
+      "expected": [
+        "overclaim"
+      ],
+      "note": "虚构验证结果与无测量数字；未测量的 3 倍/80% 属人工事实核对范围"
+    },
+    "zh-filler.md": {
+      "expected": [
+        "filler"
+      ],
+      "zh_doc_expected": [
+        "filler",
+        "buzzword",
+        "conversational"
+      ],
+      "note": "中文套话"
+    },
+    "zh-overclaim.md": {
+      "expected": [
+        "overclaim"
+      ],
+      "zh_doc_expected": [
+        "overclaim"
+      ],
+      "note": "中文绝对化保证"
+    },
+    "zh-repetition.md": {
+      "expected": [
+        "repeated-line"
+      ],
+      "zh_doc_expected": [
+        "repeated-line"
+      ],
+      "note": "全文重复行"
+    }
+  }
+}

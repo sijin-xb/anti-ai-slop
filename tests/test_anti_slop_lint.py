@@ -334,28 +334,17 @@ class WeRuleTests(unittest.TestCase):
                 self.assertIn("conversational", categories(text, "zh-doc"))
 
 class CorpusTests(unittest.TestCase):
-    EXPECTED_GOOD = {
-        "zh-technical.md", "en-technical.md", "zh-inline-code.md",
-        "en-abbrev.md", "zh-table.md", "zh-architecture.md",
-        "zh-we-usage.md", "README-real.md", "rust-docs.md",
-        "en-api-webhooks.md",
-        "ja-config.md", "ja-pool.md", "ko-config.md", "ko-pool.md",
-        "de-config.md", "de-pool.md", "fr-config.md", "fr-pool.md",
-        "es-config.md", "es-pool.md",
-    }
-    EXPECTED_BAD = {
-        "zh-filler.md", "zh-fake-verification.md", "zh-empty-complete.md",
-        "en-filler.md", "README.md", "en-meta-closer.md",
-        "ja-filler.md", "ja-ai-persona.md", "ko-filler.md", "ko-ai-persona.md",
-        "de-filler.md", "de-ai-persona.md", "fr-filler.md", "fr-ai-persona.md",
-        "es-filler.md", "es-ai-persona.md",
-    }
+    @classmethod
+    def setUpClass(cls):
+        cls.manifest = json.loads((CORPUS / "manifest.json").read_text(encoding="utf-8"))
 
     def test_good_corpus_present(self):
-        self.assertEqual({p.name for p in (CORPUS / "good").glob("*.md")}, self.EXPECTED_GOOD)
+        self.assertEqual({p.name for p in (CORPUS / "good").glob("*.md")},
+                         set(self.manifest["good"]))
 
     def test_bad_corpus_present(self):
-        self.assertEqual({p.name for p in (CORPUS / "bad").glob("*.md")}, self.EXPECTED_BAD)
+        self.assertEqual({p.name for p in (CORPUS / "bad").glob("*.md")},
+                         set(self.manifest["bad"]))
 
     def test_good_corpus_zero_findings_general(self):
         for path in sorted((CORPUS / "good").glob("*.md")):
@@ -826,6 +815,10 @@ class SentenceAndCountTests(unittest.TestCase):
                 self.assertIn("repeated-line", categories(f"{phrase}\n\n{phrase}\n"))
 
 class LanguageCorpusTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.manifest = json.loads((CORPUS / "manifest.json").read_text(encoding="utf-8"))
+
     def test_every_required_language_has_two_good_and_two_bad_samples(self):
         for lang in ("zh", "en", "ja", "ko", "de", "fr", "es"):
             with self.subTest(lang=lang):
@@ -833,11 +826,15 @@ class LanguageCorpusTests(unittest.TestCase):
                 self.assertGreaterEqual(len(list((CORPUS / "bad").glob(f"{lang}-*.md"))), 2)
 
     def test_bad_samples_hit_their_own_language_pack(self):
+        pack_categories = {"filler", "meta", "closer", "overclaim", "thinking-leak"}
         for lang in ("zh", "en", "ja", "ko", "de", "fr", "es"):
             for path in sorted((CORPUS / "bad").glob(f"{lang}-*.md")):
+                expected = set(self.manifest["bad"][path.name]["expected"]) & pack_categories
+                if not expected:
+                    continue
                 with self.subTest(path=path.name):
                     found = {f.category for f in scan_path(path, "general")}
-                    self.assertTrue(found & {"filler", "meta", "closer", "overclaim", "thinking-leak"}, path.name)
+                    self.assertTrue(expected <= found, path.name)
 
     def test_good_samples_are_clean_with_forced_language(self):
         for lang in ("ja", "ko", "de", "fr", "es"):

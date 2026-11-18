@@ -349,6 +349,13 @@ def strip_inline_code(line: str) -> str:
     without_links = INLINE_URL.sub("", MD_ANCHOR.sub(r"\1", without_code))
     return EXEMPT_PHRASES.sub(" ", without_links)
 
+def prose_of(raw: str) -> str:
+    """Prose for scanning: strip inline code, links (keep anchor text), bare
+    URLs, leftover tags and single-line HTML comments. Shared by scan_file,
+    prose_text and parity so pattern hits and language detection always see
+    the same text."""
+    return NON_PROSE.sub(" ", strip_inline_code(raw))
+
 def split_sentences(text: str) -> list[str]:
     protected = ABBREV.sub(lambda m: m.group(0).replace(".", SENTINEL), text)
     protected = ORDINAL_BEFORE_LOWERCASE.sub(lambda m: m.group(0).replace(".", SENTINEL), protected)
@@ -504,8 +511,8 @@ def rst_excluded_lines(lines: list[str]) -> set[int]:
     for number, raw in enumerate(lines, start=1):
         stripped = raw.strip()
         if mode:
-            excluded.add(number)
             if not stripped or raw[:1] in " \t":
+                excluded.add(number)
                 continue
             mode = ""
         if stripped.startswith(".."):
@@ -532,7 +539,7 @@ def prose_text(lines: list[str], rst: bool = False) -> str:
     for number, raw in enumerate(lines, start=1):
         if number <= start or number in excluded or REF_LINK_DEF.match(raw):
             continue
-        kept.append(NON_PROSE.sub(" ", strip_inline_code(raw)))
+        kept.append(prose_of(raw))
     return "\n".join(kept)
 
 def read_lines(path: Path) -> list[str]:
@@ -657,7 +664,7 @@ def scan_file(
             close_paragraph()
             continue
 
-        prose = strip_inline_code(raw).strip()
+        prose = prose_of(raw).strip()
         if not prose:
             close_paragraph()
             continue
@@ -748,7 +755,7 @@ def parity_prose_lines(path: Path) -> list[tuple[int, str]]:
     for number, raw in enumerate(lines, start=1):
         if number <= start or number in excluded:
             continue
-        result.append((number, NON_PROSE.sub(" ", strip_inline_code(raw))))
+        result.append((number, prose_of(raw)))
     return result
 
 def _number_sort_key(token: str) -> tuple[int, str]:
@@ -849,7 +856,7 @@ def main(argv: list[str] | None = None) -> int:
     max_paragraph = args.max_paragraph if args.max_paragraph is not None else spec["max_paragraph"]
     if min(max_line, max_sentence, max_paragraph) < 1:
         parser.error("长度阈值必须大于 0")
-    threshold = SEVERITY_RANK[args.fail_on] if args.fail_on else (1 if args.strict else 0)
+    threshold = SEVERITY_RANK.get(args.fail_on, 0) if args.fail_on else (1 if args.strict else 0)
 
     try:
         files = collect_files(args.paths)

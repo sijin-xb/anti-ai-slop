@@ -150,7 +150,7 @@ README 与各类文档的骨架见 `references/readme-skeleton.md`、`references
 
 ## 7. 文本 Linter
 
-两个 profile，规则集不同。语言包按文档主语言选择，`--lang` 可强制指定。
+两个 profile，规则集不同。语言包按文档主语言选择，`--lang` 可强制指定。规则 ID 与严重程度定义在 `scripts/rules.py`，linter 输出与 JSON 使用同一套 ID。
 
 **general**：查跨领域套话，加载全部语言包；不适用中文文档黑名单和篇幅预算。
 
@@ -158,17 +158,23 @@ README 与各类文档的骨架见 `references/readme-skeleton.md`、`references
 python scripts/anti_slop_lint.py path/to/file.md
 ```
 
-**zh-doc**：完整启用第 3 节规则，含 120 行 / 800 字 / 40 字预算和中文黑名单。只加载通用包和 zh 包。
+**zh-doc**：完整启用第 3 节规则，含 120 行 / 800 字 / 40 字预算和中文黑名单。加载通用包、zh 包，并额外加载 en 包——中文技术文档里夹 `seamless` / `delve into` 需要被检出。检测不到 zh 或 en 之外的文档主语言时只保留通用包。
 
 ```bash
 python scripts/anti_slop_lint.py --profile zh-doc README.md
 ```
 
-**--pair**：对照语言对，检查标题数、表格行数和正文数字是否一致（第 5 节的机械部分）。围栏和行内代码不参与比对——代码块里的计数声明归第 5 节的声明核对流程。主文件写第一个路径，`--pair` 可重复。
+**告警语义**：每条告警带严重程度。`error` 是确定性违规（语言对事实分叉、README 预算超标）；`warning` 是确定性测量超限（行长、句长、段行数、重复行、感叹号）；`advisory` 是正则线索，需要人工判断，不得单独当成内容低质的结论。JSON 输出含 `severity` 与按严重程度的计数。
+
+**--fail-on**：按最低严重程度决定退出码 1（`--fail-on error` 只被 error 触发）。`--strict` 等价于 `--fail-on advisory`，与 `--fail-on` 互斥；退出码约定：0 无触发、1 有触发、2 用法或 IO 错误。
+
+**--pair**：对照语言对，检查标题数、表格行数和正文数字是否一致（第 5 节的机械部分）。围栏、行内代码和 RST 注释/字面块不参与比对——代码块里的计数声明归第 5 节的声明核对流程。主文件写第一个路径，`--pair` 可重复。
 
 ```bash
 python scripts/anti_slop_lint.py README.md --pair README.zh-CN.md
 ```
+
+引用块（含 GitHub `> [!NOTE]` 类告警框）整行跳过：引用、反例和告警框是黑名单短语的合理语境。多行 HTML 注释、围栏内部、RST 注释与字面块同样不参与扫描。长度口径（中英混合按什么单位计）见 `docs/linter.md`。
 
 其他选项：
 
@@ -176,8 +182,10 @@ python scripts/anti_slop_lint.py README.md --pair README.zh-CN.md
 python scripts/anti_slop_lint.py --json README.md
 python scripts/anti_slop_lint.py --lang de docs/
 python scripts/anti_slop_lint.py --strict README.md
+python scripts/anti_slop_lint.py --fail-on warning README.md
 python scripts/anti_slop_lint.py --ignore-regex '^> ' README.md
 python -m unittest discover -s tests -v
+python scripts/corpus_metrics.py --all-profiles
 ```
 
 Linter 是提示器，不是事实核查器——它查不出声明是否与实现相符，第 5 节的核对流程无法被它替代。它也不能评价代码架构、视觉品味或内容是否真正有用。逐条审查告警；不要为了让输出归零而破坏必要内容。
